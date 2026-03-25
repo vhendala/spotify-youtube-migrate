@@ -1,0 +1,15 @@
+# Credenciais e dados sensíveis — NUNCA versionar
+.env
+oauth.json
+migracao_erros.txt
+
+# Cache do Spotify OAuth
+.cache
+.cache-*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
