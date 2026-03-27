@@ -27,8 +27,8 @@ from ytmusicapi import YTMusic
 # ---------------------------------------------------------------------------
 
 SPOTIFY_SCOPE = "user-library-read playlist-read-private playlist-read-collaborative"
-SPOTIFY_REDIRECT_URI = "http://localhost:8888/callback"
-YT_OAUTH_FILE = "oauth.json"
+SPOTIFY_REDIRECT_URI = "http://127.0.0.1:8888/callback"
+YT_OAUTH_FILE = "browser.json"
 ERROR_LOG_FILE = "migracao_erros.txt"
 
 # Pausa entre buscas no YT Music para respeitar o rate limit do Google
@@ -119,8 +119,17 @@ def fetch_user_playlists(sp: spotipy.Spotify) -> Generator[dict, None, None]:
 
 
 def fetch_playlist_tracks(sp: spotipy.Spotify, playlist_id: str) -> Generator[dict, None, None]:
-    """Gerador que produz cada faixa de uma playlist específica."""
-    response = sp.playlist_tracks(playlist_id, limit=100)
+    """
+    Gerador que produz cada faixa de uma playlist específica.
+    Playlists curadas pelo Spotify ou privadas de terceiros retornam 403 — nesse caso
+    o gerador simplesmente não emite nenhum item.
+    """
+    try:
+        response = sp.playlist_tracks(playlist_id, limit=100)
+    except spotipy.SpotifyException as e:
+        # 403 é esperado para playlists curadas/privadas de outros usuários
+        log_error(f"[PLAYLIST_ACESSO_NEGADO] id={playlist_id} | {e}")
+        return
 
     while response:
         for item in response["items"]:
@@ -210,7 +219,9 @@ def migrate_playlist(
 
     # 1. Coletar videoIds das faixas
     video_ids: list[str] = []
+    spotify_track_count = 0
     for track in fetch_playlist_tracks(sp, playlist_id):
+        spotify_track_count += 1
         track_name: str = track["name"]
         artist_name: str = track["artists"][0]["name"]
 
@@ -223,8 +234,12 @@ def migrate_playlist(
 
         time.sleep(RATE_LIMIT_SLEEP_SECONDS)
 
+    if spotify_track_count == 0:
+        logger.warning(f"  '{playlist_name}': Spotify não retornou nenhuma faixa (playlist inacessível ou vazia).")
+        return
+
     if not video_ids:
-        logger.warning(f"  Nenhuma faixa encontrada para '{playlist_name}'. Pulando criação.")
+        logger.warning(f"  '{playlist_name}': {spotify_track_count} faixa(s) do Spotify, mas nenhuma encontrada no YouTube Music.")
         return
 
     # 2. Criar nova playlist no YT Music

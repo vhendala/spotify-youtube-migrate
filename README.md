@@ -30,7 +30,7 @@ pip install spotipy ytmusicapi python-dotenv
 
 1. Go to [Spotify Developer Dashboard](https://developer.spotify.com/dashboard) and create an app.
 2. Copy your **Client ID** and **Client Secret**.
-3. Add `http://localhost:8888/callback` as a **Redirect URI** in the app settings.
+3. Add `http://127.0.0.1:8888/callback` as a **Redirect URI** in the app settings.
 4. Rename `.env.example` to `.env` and fill in your credentials:
 
 ```env

@@ -1,6 +1,7 @@
 # Credenciais e dados sensíveis — NUNCA versionar
 .env
 oauth.json
+browser.json
 migracao_erros.txt
 
 # Cache do Spotify OAuth
